@@ -1,13 +1,33 @@
 # agent-browser
 
-Headless browser automation CLI for AI agents.
+Headless browser automation CLI for AI agents. Fast Rust CLI with Node.js fallback.
 
 ## Installation
 
+### npm (recommended)
+
 ```bash
+npm install -g agent-browser
+agent-browser install  # Download Chromium
+```
+
+### From Source
+
+```bash
+git clone https://github.com/anthropics/agent-browser
+cd agent-browser
 pnpm install
-npx playwright install chromium
 pnpm build
+agent-browser install
+```
+
+### Linux Dependencies
+
+On Linux, install system dependencies:
+
+```bash
+agent-browser install --with-deps
+# or manually: npx playwright install-deps chromium
 ```
 
 ## Quick Start
@@ -44,17 +64,14 @@ agent-browser fill <sel> <text>       # Clear and fill
 agent-browser press <key>             # Press key (Enter, Tab, Control+a)
 agent-browser keydown <key>           # Hold key down
 agent-browser keyup <key>             # Release key
-agent-browser insert <text>           # Insert text (no key events)
 agent-browser hover <sel>             # Hover element
 agent-browser select <sel> <val>      # Select dropdown option
-agent-browser multiselect <sel> <v1> <v2>  # Multi-select
 agent-browser check <sel>             # Check checkbox
 agent-browser uncheck <sel>           # Uncheck checkbox
 agent-browser scroll <dir> [px]       # Scroll (up/down/left/right)
-agent-browser scrollinto <sel>        # Scroll element into view
+agent-browser scrollintoview <sel>    # Scroll element into view
 agent-browser drag <src> <tgt>        # Drag and drop
 agent-browser upload <sel> <files>    # Upload files
-agent-browser download [path]         # Wait for download
 agent-browser screenshot [path]       # Take screenshot (--full for full page)
 agent-browser pdf <path>              # Save as PDF
 agent-browser snapshot                # Accessibility tree with refs (best for AI)
@@ -140,14 +157,14 @@ agent-browser set geo <lat> <lng>     # Set geolocation
 agent-browser set offline [on|off]    # Toggle offline mode
 agent-browser set headers <json>      # Extra HTTP headers
 agent-browser set credentials <u> <p> # HTTP basic auth
-agent-browser set media [dark|light|print]  # Emulate media
+agent-browser set media [dark|light]  # Emulate color scheme
 ```
 
 ### Cookies & Storage
 
 ```bash
 agent-browser cookies                 # Get all cookies
-agent-browser cookies set <json>      # Set cookies
+agent-browser cookies set <name> <val> # Set cookie
 agent-browser cookies clear           # Clear cookies
 
 agent-browser storage local           # Get all localStorage
@@ -167,14 +184,13 @@ agent-browser network route <url> --body <json>  # Mock response
 agent-browser network unroute [url]            # Remove routes
 agent-browser network requests                 # View tracked requests
 agent-browser network requests --filter api    # Filter requests
-agent-browser response <url>                   # Get response body (waits for matching request)
 ```
 
 ### Tabs & Windows
 
 ```bash
 agent-browser tab                     # List tabs
-agent-browser tab new                 # New tab
+agent-browser tab new [url]           # New tab (optionally with URL)
 agent-browser tab <n>                 # Switch to tab n
 agent-browser tab close [n]           # Close tab
 agent-browser window new              # New window
@@ -197,15 +213,15 @@ agent-browser dialog dismiss          # Dismiss
 ### Debug
 
 ```bash
-agent-browser trace start             # Start recording trace
-agent-browser trace stop <path>       # Stop and save trace
+agent-browser trace start [path]      # Start recording trace
+agent-browser trace stop [path]       # Stop and save trace
 agent-browser console                 # View console messages
 agent-browser console --clear         # Clear console
 agent-browser errors                  # View page errors
+agent-browser errors --clear          # Clear errors
 agent-browser highlight <sel>         # Highlight element
 agent-browser state save <path>       # Save auth state
 agent-browser state load <path>       # Load auth state
-agent-browser initscript <js>         # Run JS on every page load
 ```
 
 ### Navigation
@@ -216,12 +232,57 @@ agent-browser forward                 # Go forward
 agent-browser reload                  # Reload page
 ```
 
-### Sessions
+### Setup
 
 ```bash
-agent-browser session                 # Show current session
-agent-browser session list            # List active sessions
+agent-browser install                 # Download Chromium browser
+agent-browser install --with-deps     # Also install system deps (Linux)
 ```
+
+## Sessions
+
+Run multiple isolated browser instances:
+
+```bash
+# Different sessions
+agent-browser --session agent1 open site-a.com
+agent-browser --session agent2 open site-b.com
+
+# Or via environment variable
+AGENT_BROWSER_SESSION=agent1 agent-browser click "#btn"
+
+# List active sessions
+agent-browser session list
+
+# Show current session
+agent-browser session
+```
+
+Each session has its own:
+- Browser instance
+- Cookies and storage
+- Navigation history
+- Authentication state
+
+## Snapshot Options
+
+The `snapshot` command supports filtering to reduce output size:
+
+```bash
+agent-browser snapshot                    # Full accessibility tree
+agent-browser snapshot -i                 # Interactive elements only (buttons, inputs, links)
+agent-browser snapshot -c                 # Compact (remove empty structural elements)
+agent-browser snapshot -d 3               # Limit depth to 3 levels
+agent-browser snapshot -s "#main"         # Scope to CSS selector
+agent-browser snapshot -i -c -d 5         # Combine options
+```
+
+| Option | Description |
+|--------|-------------|
+| `-i, --interactive` | Only show interactive elements (buttons, links, inputs) |
+| `-c, --compact` | Remove empty structural elements |
+| `-d, --depth <n>` | Limit tree depth |
+| `-s, --selector <sel>` | Scope to CSS selector |
 
 ## Options
 
@@ -234,22 +295,6 @@ agent-browser session list            # List active sessions
 | `--exact` | Exact text match |
 | `--headed` | Show browser window (not headless) |
 | `--debug` | Debug output |
-
-## Sessions
-
-Run multiple isolated browser instances:
-
-```bash
-# Different sessions
-agent-browser --session agent1 open site-a.com
-agent-browser --session agent2 open site-b.com
-
-# Or via environment
-AGENT_BROWSER_SESSION=agent1 agent-browser click "#btn"
-
-# List all
-agent-browser session list
-```
 
 ## Selectors
 
@@ -317,7 +362,7 @@ agent-browser is visible @e2 --json
 ```bash
 # 1. Navigate and get snapshot
 agent-browser open example.com
-agent-browser snapshot --json    # AI parses tree and refs
+agent-browser snapshot -i --json   # AI parses tree and refs
 
 # 2. AI identifies target refs from snapshot
 # 3. Execute actions using refs
@@ -325,8 +370,38 @@ agent-browser click @e2
 agent-browser fill @e3 "input text"
 
 # 4. Get new snapshot if page changed
-agent-browser snapshot --json
+agent-browser snapshot -i --json
 ```
+
+## Headed Mode
+
+Show the browser window for debugging:
+
+```bash
+agent-browser open example.com --headed
+```
+
+This opens a visible browser window instead of running headless.
+
+## Architecture
+
+agent-browser uses a client-daemon architecture:
+
+1. **Rust CLI** (fast native binary) - Parses commands, communicates with daemon
+2. **Node.js Daemon** - Manages Playwright browser instance
+3. **Fallback** - If native binary unavailable, uses Node.js directly
+
+The daemon starts automatically on first command and persists between commands for fast subsequent operations.
+
+## Platforms
+
+| Platform | Binary | Fallback |
+|----------|--------|----------|
+| macOS ARM64 | ✅ Native Rust | Node.js |
+| macOS x64 | ✅ Native Rust | Node.js |
+| Linux ARM64 | ✅ Native Rust | Node.js |
+| Linux x64 | ✅ Native Rust | Node.js |
+| Windows | - | Node.js |
 
 ## License
 

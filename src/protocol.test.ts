@@ -19,6 +19,21 @@ describe('parseCommand', () => {
       const result = parseCommand(cmd({ id: '1', action: 'navigate' }));
       expect(result.success).toBe(false);
     });
+
+    it('should parse back command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'back' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse forward command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'forward' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse reload command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'reload' }));
+      expect(result.success).toBe(true);
+    });
   });
 
   describe('click', () => {
@@ -193,6 +208,211 @@ describe('parseCommand', () => {
 
     it('should parse tab_close', () => {
       const result = parseCommand(cmd({ id: '1', action: 'tab_close' }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('snapshot', () => {
+    it('should parse basic snapshot command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'snapshot' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse snapshot with interactive filter', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'snapshot', interactive: true }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.interactive).toBe(true);
+      }
+    });
+
+    it('should parse snapshot with compact filter', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'snapshot', compact: true }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.compact).toBe(true);
+      }
+    });
+
+    it('should parse snapshot with maxDepth', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'snapshot', maxDepth: 3 }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.maxDepth).toBe(3);
+      }
+    });
+
+    it('should parse snapshot with selector scope', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'snapshot', selector: '#main' }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.selector).toBe('#main');
+      }
+    });
+
+    it('should parse snapshot with all options', () => {
+      const result = parseCommand(cmd({
+        id: '1',
+        action: 'snapshot',
+        interactive: true,
+        compact: true,
+        maxDepth: 5,
+        selector: '.content',
+      }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.interactive).toBe(true);
+        expect(result.command.compact).toBe(true);
+        expect(result.command.maxDepth).toBe(5);
+        expect(result.command.selector).toBe('.content');
+      }
+    });
+  });
+
+  describe('launch', () => {
+    it('should parse launch command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'launch' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse launch with headless false', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'launch', headless: false }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.headless).toBe(false);
+      }
+    });
+  });
+
+  describe('mouse actions', () => {
+    it('should parse mousemove', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'mousemove', x: 100, y: 200 }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.x).toBe(100);
+        expect(result.command.y).toBe(200);
+      }
+    });
+
+    it('should parse mousedown', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'mousedown', button: 'left' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse mouseup', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'mouseup', button: 'left' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse wheel', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'wheel', deltaX: 0, deltaY: 100 }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('scroll', () => {
+    it('should parse scroll command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'scroll', direction: 'down', amount: 300 }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse scrollintoview', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'scrollintoview', selector: '#element' }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('element state', () => {
+    it('should parse isvisible', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'isvisible', selector: '#btn' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse isenabled', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'isenabled', selector: '#btn' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse ischecked', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'ischecked', selector: '#checkbox' }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('viewport and settings', () => {
+    it('should parse viewport', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'viewport', width: 1920, height: 1080 }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse geolocation', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'geolocation', latitude: 37.7749, longitude: -122.4194 }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse offline', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'offline', offline: true }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('trace', () => {
+    it('should parse trace_start', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'trace_start' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse trace_stop', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'trace_stop', path: 'trace.zip' }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('console and errors', () => {
+    it('should parse console', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'console' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse console with clear', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'console', clear: true }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse errors', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'errors' }));
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('dialog', () => {
+    it('should parse dialog accept', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'dialog', response: 'accept' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse dialog dismiss', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'dialog', response: 'dismiss' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse dialog accept with prompt text', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'dialog', response: 'accept', promptText: 'hello' }));
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.command.promptText).toBe('hello');
+      }
+    });
+  });
+
+  describe('frame', () => {
+    it('should parse frame command', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'frame', selector: '#iframe' }));
+      expect(result.success).toBe(true);
+    });
+
+    it('should parse mainframe', () => {
+      const result = parseCommand(cmd({ id: '1', action: 'mainframe' }));
       expect(result.success).toBe(true);
     });
   });

@@ -848,6 +848,16 @@ fn main() {
         exit(1);
     }
     
+    // If --headed flag is set, send launch command first to switch to headed mode
+    if flags.headed {
+        let launch_cmd = json!({ "id": gen_id(), "action": "launch", "headless": false });
+        if let Err(e) = send_command(launch_cmd, &flags.session) {
+            if !flags.json {
+                eprintln!("\x1b[33m⚠\x1b[0m Could not switch to headed mode: {}", e);
+            }
+        }
+    }
+    
     match send_command(cmd, &flags.session) {
         Ok(resp) => {
             let success = resp.success;

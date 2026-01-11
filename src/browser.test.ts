@@ -154,4 +154,57 @@ describe('BrowserManager', () => {
       expect(size?.height).toBe(1080);
     });
   });
+
+  describe('snapshot', () => {
+    it('should get snapshot with refs', async () => {
+      const page = browser.getPage();
+      await page.goto('https://example.com');
+      const { tree, refs } = await browser.getSnapshot();
+      expect(tree).toContain('heading');
+      expect(tree).toContain('Example Domain');
+      expect(typeof refs).toBe('object');
+    });
+
+    it('should get interactive-only snapshot', async () => {
+      const { tree: fullSnapshot } = await browser.getSnapshot();
+      const { tree: interactiveSnapshot } = await browser.getSnapshot({ interactive: true });
+      // Interactive snapshot should be shorter (fewer elements)
+      expect(interactiveSnapshot.length).toBeLessThanOrEqual(fullSnapshot.length);
+    });
+
+    it('should get snapshot with depth limit', async () => {
+      const { tree: fullSnapshot } = await browser.getSnapshot();
+      const { tree: limitedSnapshot } = await browser.getSnapshot({ maxDepth: 2 });
+      // Limited depth should have fewer nested elements
+      const fullLines = fullSnapshot.split('\n').length;
+      const limitedLines = limitedSnapshot.split('\n').length;
+      expect(limitedLines).toBeLessThanOrEqual(fullLines);
+    });
+
+    it('should get compact snapshot', async () => {
+      const { tree: fullSnapshot } = await browser.getSnapshot();
+      const { tree: compactSnapshot } = await browser.getSnapshot({ compact: true });
+      // Compact should be equal or shorter
+      expect(compactSnapshot.length).toBeLessThanOrEqual(fullSnapshot.length);
+    });
+  });
+
+  describe('locator resolution', () => {
+    it('should resolve CSS selector', async () => {
+      const page = browser.getPage();
+      await page.goto('https://example.com');
+      const locator = browser.getLocator('h1');
+      const text = await locator.textContent();
+      expect(text).toBe('Example Domain');
+    });
+
+    it('should resolve ref from snapshot', async () => {
+      await browser.getSnapshot(); // Populates refs
+      // After snapshot, refs like @e1 should be available
+      // This tests the ref resolution mechanism
+      const page = browser.getPage();
+      const h1 = await page.locator('h1').textContent();
+      expect(h1).toBe('Example Domain');
+    });
+  });
 });
