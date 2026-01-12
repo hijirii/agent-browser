@@ -24,6 +24,8 @@ export interface RefMap {
     selector: string;
     role: string;
     name?: string;
+    /** Index for disambiguation when multiple elements have same role+name */
+    nth?: number;
   };
 }
 
@@ -129,7 +131,7 @@ const STRUCTURAL_ROLES = new Set([
 function buildSelector(role: string, name?: string): string {
   if (name) {
     const escapedName = name.replace(/"/g, '\\"');
-    return `getByRole('${role}', { name: "${escapedName}" })`;
+    return `getByRole('${role}', { name: "${escapedName}", exact: true })`;
   }
   return `getByRole('${role}')`;
 }
@@ -162,11 +164,37 @@ export async function getEnhancedSnapshot(
 }
 
 /**
+ * Track role+name combinations to detect duplicates
+ */
+interface RoleNameTracker {
+  counts: Map<string, number>;
+  getKey(role: string, name?: string): string;
+  getNextIndex(role: string, name?: string): number;
+}
+
+function createRoleNameTracker(): RoleNameTracker {
+  const counts = new Map<string, number>();
+  return {
+    counts,
+    getKey(role: string, name?: string): string {
+      return `${role}:${name ?? ''}`;
+    },
+    getNextIndex(role: string, name?: string): number {
+      const key = this.getKey(role, name);
+      const current = counts.get(key) ?? 0;
+      counts.set(key, current + 1);
+      return current;
+    },
+  };
+}
+
+/**
  * Process ARIA snapshot: add refs and apply filters
  */
 function processAriaTree(ariaTree: string, refs: RefMap, options: SnapshotOptions): string {
   const lines = ariaTree.split('\n');
   const result: string[] = [];
+  const tracker = createRoleNameTracker();
 
   // For interactive-only mode, we collect just interactive elements
   if (options.interactive) {
@@ -179,15 +207,19 @@ function processAriaTree(ariaTree: string, refs: RefMap, options: SnapshotOption
 
       if (INTERACTIVE_ROLES.has(roleLower)) {
         const ref = nextRef();
+        const nth = tracker.getNextIndex(roleLower, name);
         refs[ref] = {
           selector: buildSelector(roleLower, name),
           role: roleLower,
           name,
+          // Only store nth if this is a duplicate (nth > 0)
+          ...(nth > 0 ? { nth } : {}),
         };
 
         let enhanced = `- ${role}`;
         if (name) enhanced += ` "${name}"`;
         enhanced += ` [ref=${ref}]`;
+        if (nth > 0) enhanced += ` [nth=${nth}]`;
         if (suffix && suffix.includes('[')) enhanced += suffix;
 
         result.push(enhanced);
@@ -198,7 +230,7 @@ function processAriaTree(ariaTree: string, refs: RefMap, options: SnapshotOption
 
   // Normal processing with depth/compact filters
   for (const line of lines) {
-    const processed = processLine(line, refs, options);
+    const processed = processLine(line, refs, options, tracker);
     if (processed !== null) {
       result.push(processed);
     }
@@ -223,7 +255,12 @@ function getIndentLevel(line: string): number {
 /**
  * Process a single line: add ref if needed, filter if requested
  */
-function processLine(line: string, refs: RefMap, options: SnapshotOptions): string | null {
+function processLine(
+  line: string,
+  refs: RefMap,
+  options: SnapshotOptions,
+  tracker: RoleNameTracker
+): string | null {
   const depth = getIndentLevel(line);
 
   // Check max depth
@@ -273,17 +310,21 @@ function processLine(line: string, refs: RefMap, options: SnapshotOptions): stri
 
   if (shouldHaveRef) {
     const ref = nextRef();
+    const nth = tracker.getNextIndex(roleLower, name);
 
     refs[ref] = {
       selector: buildSelector(roleLower, name),
       role: roleLower,
       name,
+      // Only store nth if this is a duplicate (nth > 0)
+      ...(nth > 0 ? { nth } : {}),
     };
 
     // Build enhanced line with ref
     let enhanced = `${prefix}${role}`;
     if (name) enhanced += ` "${name}"`;
     enhanced += ` [ref=${ref}]`;
+    if (nth > 0) enhanced += ` [nth=${nth}]`;
     if (suffix) enhanced += suffix;
 
     return enhanced;
