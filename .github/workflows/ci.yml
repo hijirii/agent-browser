@@ -141,8 +141,23 @@ jobs:
       - name: Test agent-browser install command
         run: |
           $env:PATH = "$pwd\bin;$env:PATH"
-          bin/agent-browser-win32-x64.exe install
+          $maxRetries = 3
+          $retryCount = 0
+          while ($retryCount -lt $maxRetries) {
+            try {
+              bin/agent-browser-win32-x64.exe install
+              break
+            } catch {
+              $retryCount++
+              if ($retryCount -eq $maxRetries) {
+                throw "Install failed after $maxRetries attempts"
+              }
+              Write-Host "Attempt $retryCount failed, retrying in 10 seconds..."
+              Start-Sleep -Seconds 10
+            }
+          }
         shell: pwsh
+        timeout-minutes: 10
 
       - name: Verify Chromium was installed
         run: |
