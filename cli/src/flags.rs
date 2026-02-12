@@ -5,6 +5,8 @@ pub struct Flags {
     pub full: bool,
     pub headed: bool,
     pub debug: bool,
+    pub stealth: bool,
+    pub stealth_options: Option<String>,
     pub session: String,
     pub headers: Option<String>,
     pub executable_path: Option<String>,
@@ -50,6 +52,8 @@ pub fn parse_flags(args: &[String]) -> Flags {
         full: false,
         headed: false,
         debug: false,
+        stealth: env::var("AGENT_BROWSER_STEALTH").is_ok(),
+        stealth_options: env::var("AGENT_BROWSER_STEALTH_OPTIONS").ok(),
         session: env::var("AGENT_BROWSER_SESSION").unwrap_or_else(|_| "default".to_string()),
         headers: None,
         executable_path: env::var("AGENT_BROWSER_EXECUTABLE_PATH").ok(),
@@ -84,6 +88,15 @@ pub fn parse_flags(args: &[String]) -> Flags {
             "--full" | "-f" => flags.full = true,
             "--headed" => flags.headed = true,
             "--debug" => flags.debug = true,
+            "--stealth" => {
+                flags.stealth = true;
+            }
+            "--stealth-options" => {
+                if let Some(s) = args.get(i + 1) {
+                    flags.stealth_options = Some(s.clone());
+                    i += 1;
+                }
+            }
             "--session" => {
                 if let Some(s) = args.get(i + 1) {
                     flags.session = s.clone();
@@ -194,6 +207,7 @@ pub fn clean_args(args: &[String]) -> Vec<String> {
         "--debug",
         "--ignore-https-errors",
         "--allow-file-access",
+        "--stealth",
     ];
     // Global flags that take a value (need to skip the next arg too)
     const GLOBAL_FLAGS_WITH_VALUE: &[&str] = &[
@@ -211,6 +225,7 @@ pub fn clean_args(args: &[String]) -> Vec<String> {
         "-p",
         "--provider",
         "--device",
+        "--stealth-options",
     ];
 
     for arg in args.iter() {

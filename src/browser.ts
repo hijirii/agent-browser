@@ -19,6 +19,7 @@ import os from 'node:os';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import type { LaunchCommand } from './types.js';
 import { type RefMap, type EnhancedSnapshot, getEnhancedSnapshot, parseRef } from './snapshot.js';
+import { generateStealthScript, generateStealthArgs, defaultStealthConfig } from './stealth.js';
 
 // Screencast frame data from CDP
 export interface ScreencastFrame {
@@ -1097,11 +1098,18 @@ export class BrowserManager {
     const fileAccessArgs = options.allowFileAccess
       ? ['--allow-file-access-from-files', '--allow-file-access']
       : [];
-    const baseArgs = options.args
-      ? [...fileAccessArgs, ...options.args]
-      : fileAccessArgs.length > 0
-        ? fileAccessArgs
-        : undefined;
+    
+    // Build stealth args if enabled
+    const stealthArgs = (options.stealth && browserType === 'chromium')
+      ? generateStealthArgs()
+      : [];
+    
+    // Combine all args
+    let allArgs = [...fileAccessArgs, ...stealthArgs];
+    if (options.args) {
+      allArgs = [...allArgs, ...options.args];
+    }
+    const baseArgs = allArgs.length > 0 ? allArgs : undefined;
 
     let context: BrowserContext;
     if (hasExtensions) {
@@ -1169,6 +1177,13 @@ export class BrowserManager {
       this.setupPageTracking(page);
     }
     this.activePageIndex = this.pages.length > 0 ? this.pages.length - 1 : 0;
+
+    // Inject stealth script if enabled
+    if (options.stealth) {
+      const stealthConfig = options.stealthOptions ?? defaultStealthConfig;
+      const stealthScript = generateStealthScript(stealthConfig);
+      await page.addInitScript(stealthScript);
+    }
   }
 
   /**

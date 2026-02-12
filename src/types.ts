@@ -10,6 +10,8 @@ export interface BaseCommand {
 export interface LaunchCommand extends BaseCommand {
   action: 'launch';
   headless?: boolean;
+  stealth?: boolean; // Enable stealth mode to avoid bot detection
+  stealthOptions?: StealthOptions; // Custom stealth configuration
   viewport?: { width: number; height: number };
   browser?: 'chromium' | 'firefox' | 'webkit';
   headers?: Record<string, string>;
@@ -30,6 +32,28 @@ export interface LaunchCommand extends BaseCommand {
   provider?: string;
   ignoreHTTPSErrors?: boolean;
   allowFileAccess?: boolean; // Enable file:// URL access and cross-origin file requests
+}
+
+// Stealth configuration options
+export interface StealthOptions {
+  webdriver?: boolean; // Hide webdriver flag (default: true)
+  navigator?: boolean; // Fake navigator properties (default: true)
+  navigatorLanguages?: boolean; // Set realistic languages (default: true)
+  navigatorPlatform?: boolean; // Set platform (default: true)
+  navigatorHardwareConcurrency?: boolean; // Set hardware concurrency (default: true)
+  navigatorDeviceMemory?: boolean; // Set device memory (default: true)
+  screenWidth?: boolean; // Set realistic screen width (default: true)
+  screenHeight?: boolean; // Set realistic screen height (default: true)
+  pixelRatio?: boolean; // Set pixel ratio (default: true)
+  colorDepth?: boolean; // Set color depth (default: true)
+  touchSupport?: boolean; // Fake touch support (default: true)
+  chromeRuntime?: boolean; // Remove chrome.runtime (default: true)
+  permissions?: boolean; // Mock permissions API (default: true)
+  windowFrame?: boolean; // Fake window.frame (default: true)
+  doNotTrack?: boolean; // Set doNotTrack (default: false)
+  plugins?: boolean; // Mock plugins (default: true)
+  mediaDevices?: boolean; // Mock mediaDevices (default: true)
+  customUserAgent?: string; // Custom user agent string
 }
 
 export interface NavigateCommand extends BaseCommand {
