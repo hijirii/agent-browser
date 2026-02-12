@@ -1,7 +1,8 @@
 /**
- * Stealth Script Generator
+ * Stealth Script Generator - Enhanced Version
  * Generates JavaScript code to inject into pages to avoid bot detection
  * Based on principles from undetected-chromedriver and puppeteer-extra-plugin-stealth
+ * Enhanced with Canvas fingerprint spoofing, WebGL noise, and human behavior simulation
  */
 
 export interface StealthConfig {
@@ -23,9 +24,13 @@ export interface StealthConfig {
   plugins?: boolean;
   mediaDevices?: boolean;
   customUserAgent?: string;
+  canvasNoise?: boolean;
+  webglNoise?: boolean;
+  audioContextNoise?: boolean;
+  behaviorRandomization?: boolean;
 }
 
-// Default stealth configuration
+// Default stealth configuration - Enhanced
 export const defaultStealthConfig: StealthConfig = {
   webdriver: true,
   navigator: true,
@@ -44,6 +49,10 @@ export const defaultStealthConfig: StealthConfig = {
   doNotTrack: false,
   plugins: true,
   mediaDevices: true,
+  canvasNoise: true,
+  webglNoise: true,
+  audioContextNoise: true,
+  behaviorRandomization: true,
 };
 
 /**
@@ -385,22 +394,337 @@ export function generateStealthScript(config: StealthConfig = defaultStealthConf
     });
   `);
 
+  // ==================== ENHANCED STEALTH FEATURES ====================
+  
+  // Canvas Fingerprint Spoofing with Noise
+  if (config.canvasNoise !== false) {
+    scripts.push(`
+      // Canvas fingerprint spoofing with random noise
+      const canvasNoise = () => {
+        const noise = Math.random() * 0.000001;
+        return noise;
+      };
+      
+      const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+      HTMLCanvasElement.prototype.toDataURL = function(type, encoderOptions) {
+        if (this.width === 0 || this.height === 0) {
+          return originalToDataURL.call(this, type, encoderOptions);
+        }
+        const ctx = this.getContext('2d');
+        if (ctx) {
+          // Add subtle noise to pixel data
+          const imageData = ctx.getImageData(0, 0, this.width, this.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const noise = (Math.random() - 0.5) * 2;
+            data[i] = Math.max(0, Math.min(255, data[i] + noise));
+            data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+            data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+          }
+          ctx.putImageData(imageData, 0, 0);
+        }
+        return originalToDataURL.call(this, type, encoderOptions);
+      };
+      
+      const originalGetImageData = CanvasRenderingContext2D.prototype.getImageData;
+      CanvasRenderingContext2D.prototype.getImageData = function(sx, sy, sw, sh) {
+        const data = originalGetImageData.call(this, sx, sy, sw, sh);
+        // Add slight noise to prevent exact fingerprinting
+        for (let i = 0; i < data.data.length; i++) {
+          if (Math.random() > 0.99) {
+            data.data[i] = (data.data[i] + Math.random() * 0.5) % 256;
+          }
+        }
+        return data;
+      };
+    `);
+  }
+
+  // WebGL Fingerprint Spoofing with Noise
+  if (config.webglNoise !== false) {
+    scripts.push(`
+      // WebGL fingerprint spoofing
+      const webglNoise = () => {
+        return Math.random() * 0.0001;
+      };
+      
+      // Spoof WebGL vendor and renderer
+      const getParameter = WebGLRenderingContext.prototype.getParameter;
+      WebGLRenderingContext.prototype.getParameter = function(parameter) {
+        // Add noise to numeric parameters
+        if (typeof parameter === 'number') {
+          const noise = webglNoise();
+          const original = getParameter.call(this, parameter);
+          if (typeof original === 'number') {
+            return original + noise;
+          }
+        }
+        
+        // Spoof vendor strings
+        if (parameter === 37445) {
+          return 'NVIDIA Corporation';
+        }
+        if (parameter === 37446) {
+          return 'GeForce RTX 3080/PCIe/SSE2';
+        }
+        if (parameter === 7937) {
+          return 'WebKit';
+        }
+        if (parameter === 7938) {
+          return 'WebGL 2.0';
+        }
+        return getParameter.call(this, parameter);
+      };
+      
+      // Add noise to WebGL rendering
+      const originalClear = WebGLRenderingContext.prototype.clear;
+      WebGLRenderingContext.prototype.clear = function(mask) {
+        // Randomize clear color slightly
+        if (Math.random() > 0.95) {
+          this.clearColor(
+            Math.random() * 0.1,
+            Math.random() * 0.1,
+            Math.random() * 0.1,
+            1.0
+          );
+        }
+        return originalClear.call(this, mask);
+      };
+      
+      // Spoof WebGL2 parameters
+      const getParameter2 = WebGL2RenderingContext.prototype.getParameter;
+      WebGL2RenderingContext.prototype.getParameter = function(parameter) {
+        if (parameter === 37445) {
+          return 'NVIDIA Corporation';
+        }
+        if (parameter === 37446) {
+          return 'GeForce RTX 3080/PCIe/SSE2';
+        }
+        return getParameter2.call(this, parameter);
+      };
+    `);
+  }
+
+  // AudioContext Fingerprint Spoofing
+  if (config.audioContextNoise !== false) {
+    scripts.push(`
+      // AudioContext fingerprint spoofing
+      const audioNoise = () => {
+        return Math.random() * 0.0000001;
+      };
+      
+      const originalGetChannelData = AudioContext.prototype.createBuffer;
+      AudioContext.prototype.createBuffer = function(numberOfChannels, length, sampleRate) {
+        const buffer = originalGetChannelData.call(this, numberOfChannels, length, sampleRate);
+        // Add tiny noise to prevent exact fingerprinting
+        for (let i = 0; i < buffer.numberOfChannels; i++) {
+          const channelData = buffer.getChannelData(i);
+          for (let j = 0; j < channelData.length; j += 1000) {
+            channelData[j] += audioNoise();
+          }
+        }
+        return buffer;
+      };
+      
+      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData;
+      AudioContext.prototype.decodeAudioData = function(audioData, successCallback, errorCallback) {
+        const success = successCallback;
+        const error = errorCallback;
+        return originalDecodeAudioData.call(this, audioData, 
+          (decodedBuffer) => {
+            // Add noise to decoded buffer
+            if (decodedBuffer) {
+              for (let i = 0; i < decodedBuffer.numberOfChannels; i++) {
+                const channelData = decodedBuffer.getChannelData(i);
+                for (let j = 0; j < channelData.length; j += 500) {
+                  channelData[j] += audioNoise();
+                }
+              }
+            }
+            if (success) success(decodedBuffer);
+          },
+          error
+        );
+      };
+    `);
+  }
+
+  // Behavior Randomization - Human-like interactions
+  if (config.behaviorRandomization !== false) {
+    scripts.push(`
+      // Human behavior randomization
+      
+      // Randomize scroll behavior
+      const originalScroll = window.scrollTo;
+      window.scrollTo = function(x, y) {
+        if (typeof x === 'object') {
+          x = x.left || 0;
+          y = x.top || 0;
+        }
+        // Add small random offset
+        const randomX = x + (Math.random() - 0.5) * 10;
+        const randomY = y + (Math.random() - 0.5) * 10;
+        originalScroll.call(this, Math.max(0, randomX), Math.max(0, randomY));
+      };
+      
+      // Add random mouse movements simulation
+      let mouseMoveCount = 0;
+      document.addEventListener('mousemove', () => {
+        mouseMoveCount++;
+      });
+      
+      // Randomize click timing
+      const originalClick = HTMLElement.prototype.click;
+      HTMLElement.prototype.click = function() {
+        // Simulate human-like delay
+        const delay = Math.random() * 50 + 10;
+        setTimeout(() => {
+          originalClick.call(this);
+        }, delay);
+      };
+      
+      // Randomize focus events
+      const originalFocus = HTMLElement.prototype.focus;
+      HTMLElement.prototype.focus = function() {
+        const delay = Math.random() * 30 + 5;
+        setTimeout(() => {
+          originalFocus.call(this);
+        }, delay);
+      };
+      
+      // Spoof document.hidden
+      Object.defineProperty(document, 'hidden', {
+        get: () => false,
+        configurable: true,
+      });
+      
+      Object.defineProperty(document, 'visibilityState', {
+        get: () => 'visible',
+        configurable: true,
+      });
+      
+      // Add random viewport offset
+      Object.defineProperty(window, 'scrollX', {
+        get: () => Math.floor(Math.random() * 5),
+        configurable: true,
+      });
+      
+      Object.defineProperty(window, 'scrollY', {
+        get: () => Math.floor(Math.random() * 5),
+        configurable: true,
+      });
+      
+      // Randomize Performance API
+      const originalNow = performance.now;
+      performance.now = function() {
+        const now = originalNow.call(this);
+        // Add small random offset to prevent timing fingerprinting
+        return now + (Math.random() - 0.5) * 0.5;
+      };
+      
+      // Add random variation to Date
+      const originalDate = Date;
+      Date = function(...args) {
+        if (args.length === 0) {
+          return new originalDate(originalDate.now() + (Math.random() - 0.5) * 100);
+        }
+        return new originalDate(...args);
+      };
+      Date.now = function() {
+        return originalDate.now() + (Math.random() - 0.5) * 100;
+      };
+    `);
+  }
+
+  // Speech Synthesis spoofing
+  scripts.push(`
+    Object.defineProperty(window, 'speechSynthesis', {
+      get: () => ({
+        pending: false,
+        speaking: false,
+        paused: false,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => true,
+        cancel: () => {},
+        speak: () => {},
+        pause: () => {},
+        resume: () => {},
+        getVoices: () => [],
+      }),
+      configurable: true,
+    });
+  `);
+
+  // Gamepad API spoofing
+  scripts.push(`
+    Object.defineProperty(navigator, 'getGamepads', {
+      get: () => () => Array(4).fill(null),
+      configurable: true,
+    });
+  `);
+
+  // Battery API spoofing
+  scripts.push(`
+    Object.defineProperty(navigator, 'getBattery', {
+      get: () => () => Promise.resolve({
+        charging: true,
+        chargingTime: 0,
+        dischargingTime: Infinity,
+        level: 1,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+      configurable: true,
+    });
+  `);
+
+  // Clipboard API spoofing
+  scripts.push(`
+    Object.defineProperty(navigator, 'clipboard', {
+      get: () => ({
+        readText: () => Promise.reject(new Error('Clipboard access denied')),
+        writeText: () => Promise.reject(new Error('Clipboard access denied')),
+        read: () => Promise.reject(new Error('Clipboard access denied')),
+        write: () => Promise.reject(new Error('Clipboard access denied')),
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+      configurable: true,
+    });
+  `);
+
   // Combine all scripts
   return scripts.join('\n');
 }
 
 /**
- * Generate stealth launch arguments for Chromium
+ * Generate stealth launch arguments for Chromium - Enhanced Version
  */
 export function generateStealthArgs(): string[] {
   return [
+    // Core automation detection bypass
     '--disable-blink-features=AutomationControlled',
+    '--disable-automation',
+    '--enable-automation',
+    
+    // Memory and performance optimizations
     '--disable-dev-shm-usage',
     '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    
+    // Window settings to avoid fingerprinting
     '--window-size=1920,1080',
+    '--window-position=0,0',
     '--start-maximized',
+    '--maximize',
+    
+    // Security and privacy settings
     '--disable-web-security',
-    '--disable-features=IsolateOrigins,site-per-process',
+    '--disable-features=IsolateOrigins,site-per-process,TranslateUI',
     '--disable-benchmarking',
     '--disable-extensions',
     '--disable-background-networking',
@@ -409,9 +733,46 @@ export function generateStealthArgs(): string[] {
     '--metrics-recording-only',
     '--mute-audio',
     '--safebrowsing-disable-auto-update',
-    '--enable-automation',
-    '--disable-automation',
+    '--safebrowsing-disable-download-protection',
+    
+    // Password and form settings
     '--password-store=basic',
     '--use-mock-keychain',
+    '--disable-autofill-assistant',
+    '--disable-password-generation',
+    '--disable-save-password-bubble',
+    
+    // Hardware and feature flags
+    '--disable-software-rasterizer',
+    '--disable-accelerated-video-decode',
+    '--disable-frame-rate-limit',
+    '--ignore-gpu-blocklist',
+    
+    // Bot detection bypass
+    '--disable-ipc-flooding-protection',
+    '--disable-prompt-on-repost',
+    '--noerrdialogs',
+    '--disable-breakpad',
+    '--disable-logging',
+    '--disable-metrics',
+    '--disable-metrics-reporting',
+    
+    // User agent spoofing arguments
+    '--user-agent=' + generateRealisticUserAgent(),
   ];
+}
+
+/**
+ * Generate a more realistic User-Agent string
+ */
+function generateRealisticUserAgent(): string {
+  const versions = {
+    chrome: ['131.0.0.0', '132.0.0.0', '133.0.0.0'],
+    safari: ['605.1.15', '616.4.1', '617.1.15'],
+  };
+  
+  const randomChrome = versions.chrome[Math.floor(Math.random() * versions.chrome.length)];
+  const randomSafari = versions.safari[Math.floor(Math.random() * versions.safari.length)];
+  
+  return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${randomChrome} Safari/537.36`;
 }

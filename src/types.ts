@@ -34,7 +34,7 @@ export interface LaunchCommand extends BaseCommand {
   allowFileAccess?: boolean; // Enable file:// URL access and cross-origin file requests
 }
 
-// Stealth configuration options
+// Stealth configuration options - Enhanced
 export interface StealthOptions {
   webdriver?: boolean; // Hide webdriver flag (default: true)
   navigator?: boolean; // Fake navigator properties (default: true)
@@ -54,6 +54,12 @@ export interface StealthOptions {
   plugins?: boolean; // Mock plugins (default: true)
   mediaDevices?: boolean; // Mock mediaDevices (default: true)
   customUserAgent?: string; // Custom user agent string
+  
+  // Enhanced stealth features
+  canvasNoise?: boolean; // Add noise to Canvas fingerprint (default: true)
+  webglNoise?: boolean; // Add noise to WebGL fingerprint (default: true)
+  audioContextNoise?: boolean; // Add noise to AudioContext fingerprint (default: true)
+  behaviorRandomization?: boolean; // Simulate human-like behavior (default: true)
 }
 
 export interface NavigateCommand extends BaseCommand {
